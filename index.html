@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PetSocial 🐾</title>
+ 
+<script src="https://cdn.tailwindcss.com"></script>
+ 
+<style>
+body { transition: all 0.3s ease }
+ 
+.story {
+  width: 70px; height: 70px; border-radius: 999px;
+  border: 3px solid #ec4899; overflow: hidden; cursor: pointer;
+  transition: 0.2s; flex-shrink: 0;
+}
+.story:hover { transform: scale(1.1) }
+ 
+.fade-in { animation: fade 0.5s ease }
+@keyframes fade {
+  from { opacity: 0; transform: translateY(15px) }
+  to { opacity: 1; transform: translateY(0) }
+}
+ 
+.admin {
+  background: linear-gradient(135deg, #fff1f2, #ffe4e6)
+}
+ 
+.input { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; }
+.select { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; background: white; }
+.btn-filtro { background: white; color: #64748b; padding: 4px 10px; border: 1px solid #e2e8f0; border-radius: 20px; font-size: 11px; font-weight: 600; transition: all 0.2s; }
+.btn-filtro.ativo { background: #ec4899; color: white; border-color: #ec4899; }
+</style>
+ 
+</head>
+ 
+<body class="bg-slate-100">
+ <div id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-white shadow-lg transform -translate-x-full transition-transform duration-300 z-50">
+ 
+  <div class="p-4 border-b flex justify-between items-center">
+    <h2 class="font-bold text-pink-500 text-lg">Menu</h2>
+    <button onclick="toggleSidebar()" class="text-gray-500">✖</button>
+  </div>
+ 
+  <div class="p-4 space-y-3 text-sm">
+ 
+    <button onclick="scrollFeed()" class="block w-full text-left hover:text-pink-500">
+      🐾 Feed
+    </button>
+ 
+    <button onclick="abrirChat()" class="block w-full text-left hover:text-pink-500">
+      💬 Mensagens
+    </button>
+ 
+    <button onclick="toggleFiltros()" class="block w-full text-left hover:text-pink-500">
+      ⚙️ Filtros
+    </button>
+ 
+    <hr>
+ 
+    <button onclick="logout()" class="text-red-500 font-bold">
+      🚪 Sair
+    </button>
+ 
+  </div>
+</div>
+ 
+<div class="max-w-6xl mx-auto p-6 grid grid-cols-12 gap-6">
+ 
+<div class="col-span-3 space-y-4">
+ 
+  <h1 onclick="toggleSidebar()" class="text-2xl font-bold text-pink-500 cursor-pointer">
+🐾 PetSocial
+</h1>
+ 
+  <div class="bg-white p-3 rounded-xl shadow-sm border">
+<p id="info" class="text-sm font-semibold text-slate-700">Aguardando login...</p>
+<button onclick="logout()" id="btnLogout" class="hidden text-xs text-red-500 font-bold mt-2 hover:underline block">Sair</button>
+</div>
+ 
+  <div id="filtroBox" class="hidden bg-white p-4 rounded-xl shadow border space-y-3">
+<div>
+<p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Idade do Pet:</p>
+<div class="flex flex-wrap gap-1">
+<button onclick="setFiltroIdade('Todos')" id="fIdade-Todos" class="btn-filtro ativo">Todos</button>
+<button onclick="setFiltroIdade('Filhote')" id="fIdade-Filhote" class="btn-filtro">Filhotes</button>
+<button onclick="setFiltroIdade('Adulto')" id="fIdade-Adulto" class="btn-filtro">Adultos</button>
+</div>
+</div>
+<div>
+<p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Porte do Pet:</p>
+<div class="flex flex-wrap gap-1">
+<button onclick="setFiltroPorte('Todos')" id="fPorte-Todos" class="btn-filtro ativo">Todos</button>
+<button onclick="setFiltroPorte('Pequeno')" id="fPorte-Pequeno" class="btn-filtro">Pequeno</button>
+<button onclick="setFiltroPorte('Médio')" id="fPorte-Médio" class="btn-filtro">Médio</button>
+</div>
+</div>
+</div>
+ 
+  <div id="adminPanel" class="hidden bg-black text-white p-4 rounded-xl space-y-3">
+<h2 class="font-bold text-sm text-pink-400 flex items-center gap-1">🛡️ Painel de Controle</h2>
+ 
+    <div class="grid grid-cols-3 text-center text-[11px] gap-1">
+<div class="bg-zinc-900 p-2 rounded">
+<p id="mPosts" class="font-bold text-sm text-white">0</p>
+        Posts
+</div>
+<div class="bg-zinc-900 p-2 rounded">
+<p id="mChats" class="font-bold text-sm text-white">0</p>
+        Chats
+</div>
+<div class="bg-zinc-900 p-2 rounded">
+<p id="mUsers" class="font-bold text-sm text-white">0</p>
+        Usuários
+</div>
+</div>
+ 
+    <button onclick="resetar()" class="bg-red-500 hover:bg-red-600 text-xs font-bold p-2 w-full rounded transition-colors">
+      Resetar Sistema
+</button>
+</div>
+ 
+</div>
+ 
+<div class="col-span-6">
+ 
+  <div id="loginBox" class="bg-white p-5 rounded-xl shadow border">
+<h3 class="font-bold text-slate-700 mb-3 text-sm">Selecione seu modo de acesso</h3>
+<input id="nomeUser" placeholder="Seu nome" class="input mb-2">
+<select id="userTipo" class="select mb-3">
+<option value="adotante">Quero Adotar um Pet 🏠</option>
+<option value="tutor">Sou Tutor / Cadastrar Pet 📢</option>
+</select>
+ 
+    <button onclick="login()" class="bg-pink-500 hover:bg-pink-600 font-bold text-white w-full p-2 rounded transition-colors text-sm">
+      Entrar no App
+</button>
+ 
+    <button onclick="loginAdmin()" class="bg-black hover:bg-zinc-800 font-bold text-white w-full p-2 mt-2 rounded transition-colors text-xs">
+      Modo Admin Geral
+</button>
+</div>
+ 
+  <div id="app" class="hidden">
+ 
+    <div class="bg-white p-3 rounded-xl shadow border flex gap-3 overflow-x-auto" id="stories"></div>
+ 
+    <div id="cadastroPetBox" class="bg-white p-4 rounded-xl shadow border mb-4">
+<h3 class="font-bold text-slate-700 text-xs uppercase mb-2">Anunciar Pet / Publicar Story</h3>
+<input id="nome" placeholder="Nome do pet" class="input mb-2">
+<input id="desc" placeholder="Descrição do pet para adoção..." class="input mb-2">
+<div class="grid grid-cols-2 gap-2 mb-2">
+<select id="idadePet" class="select">
+<option value="Filhote">Filhote</option>
+<option value="Adulto">Adulto</option>
+</select>
+<select id="portePet" class="select">
+<option value="Pequeno">Porte Pequeno</option>
+<option value="Médio">Porte Médio</option>
+</select>
+</div>
+ 
+      <input type="file" id="img" class="text-xs text-slate-500 w-full mb-1">
+ 
+      <div class="flex gap-2">
+<button onclick="criarPost()" class="bg-pink-500 text-white font-bold p-2 flex-1 rounded text-sm mt-2">Postar no Feed</button>
+<button onclick="criarStory()" class="bg-purple-500 text-white font-bold p-2 flex-1 rounded text-sm mt-2">Publicar Story</button>
+</div>
+</div>
+ 
+    <div id="feed" class="space-y-4"></div>
+ 
+  </div>
+ 
+</div>
+ 
+<div class="col-span-3">
+<div class="bg-white p-4 rounded-xl shadow border sticky top-6">
+<h3 id="tituloChat" class="font-bold text-slate-700 text-sm mb-3">💬 Mensagens de Adoção</h3>
+<div id="chat" class="space-y-3 max-h-[75vh] overflow-y-auto pr-1 text-xs text-slate-500">
+      Faça login para abrir canais de mensagens.
+</div>
+</div>
+</div>
+ 
+</div>
+ 
+<script>
+const BIN_ID = "6a24bf56da38895dfe92f511";
+const API_KEY = "$2a$10$QIrE3mo4f9n3TmF5qETxkuB8cnAq2vVI7T8tPB0MzUKPwQCwOfKny";
+const URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+ 
+let usuario = null
+let isAdmin = false
+ 
+let posts = []
+let stories = []
+let chats = []
+ 
+let filtroIdade = 'Todos'
+let filtroPorte = 'Todos'
+ 
+let syncAtivo = false
+ 
+// ==========================
+// BANCO
+// ==========================
+async function carregar(){
+  if(syncAtivo) return;
+  syncAtivo = true
+ 
+  try {
+    const res = await fetch(URL, { headers: { "X-Master-Key": API_KEY } });
+    const data = await res.json();
+ 
+    posts = data.record.posts || [];
+    stories = data.record.stories || [];
+    chats = data.record.chats || [];
+ 
+    render();
+  } catch(e){
+    console.error(e)
+  }
+ 
+  syncAtivo = false
+}
+ 
+async function salvar(){
+  try {
+    await fetch(URL, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY },
+      body: JSON.stringify({ posts, stories, chats })
+    });
+  } catch (err) {
+    console.error(err);
+  }
+}
+ 
+// ==========================
+// LOGIN
+// ==========================
+function login(){
+  const nome = document.getElementById("nomeUser").value.trim()
+  const tipo = document.getElementById("userTipo").value
+  if(!nome) return alert("Informe seu nome")
+ 
+  usuario = { id: Date.now(), nome, tipo }
+  iniciar()
+}
+ 
+function loginAdmin(){
+  usuario = { id: 1, nome: "Admin", tipo: "admin" }
+  isAdmin = true
+  iniciar()
+}
+ 
+function iniciar(){
+  document.getElementById("loginBox").style.display = "none"
+  document.getElementById("app").style.display = "block"
+  document.getElementById("filtroBox").classList.remove("hidden")
+  document.getElementById("info").textContent = `Bem-vindo, ${usuario.nome}!`
+  document.getElementById("btnLogout").classList.remove("hidden")
+
+  if(isAdmin){
+    document.getElementById("adminPanel").classList.remove("hidden")
+    document.getElementById("info").textContent = "🛡️ Modo Admin"
+  }
+ 
+  carregar()
+}
+ 
+function logout(){ location.reload() }
+ 
+// ==========================
+// POST
+// ==========================
+function criarPost(){
+  const nomePet = document.getElementById("nome").value.trim()
+  const descPet = document.getElementById("desc").value.trim()
+  const idade = document.getElementById("idadePet").value
+  const porte = document.getElementById("portePet").value
+  const file = document.getElementById("img").files[0]
+ 
+  if(!nomePet || !descPet || !file) return alert("Preencha tudo")
+ 
+  if(file.size > 800000){
+    return alert("Imagem muito grande (máx 800kb)")
+  }
+ 
+  const reader = new FileReader()
+  reader.onload = async e => {
+    posts.unshift({
+      id: Date.now(),
+      nome: nomePet,
+      desc: descPet,
+      idade, porte,
+      tutorId: usuario.id,
+      tutorNome: usuario.nome,
+      foto: e.target.result,
+      likes: [],
+      comentarios: []
+    })
+ 
+    await salvar()
+    render()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+ 
+    document.getElementById("nome").value = ""
+    document.getElementById("desc").value = ""
+    document.getElementById("img").value = ""
+  }
+  reader.readAsDataURL(file)
+}
+
+// ==========================
+// STORY
+// ==========================
+function criarStory(){
+  const nomePet = document.getElementById("nome").value.trim()
+  const file = document.getElementById("img").files[0]
+ 
+  if(!nomePet || !file) return alert("Preencha nome do pet e selecione imagem")
+ 
+  if(file.size > 800000){
+    return alert("Imagem muito grande (máx 800kb)")
+  }
+ 
+  const reader = new FileReader()
+  reader.onload = async e => {
+    stories.unshift({
+      id: Date.now(),
+      nome: nomePet,
+      tutorId: usuario.id,
+      tutorNome: usuario.nome,
+      foto: e.target.result
+    })
+ 
+    await salvar()
+    render()
+ 
+    document.getElementById("nome").value = ""
+    document.getElementById("desc").value = ""
+    document.getElementById("img").value = ""
+  }
+  reader.readAsDataURL(file)
+}
+
+// ==========================
+// RENDER STORIES
+// ==========================
+function renderStories(){
+  const el = document.getElementById("stories")
+ 
+  let html = ""
+ 
+  stories.forEach(s => {
+    html += `
+      <div class="story" style="background-image: url('${s.foto}'); background-size: cover;" title="${s.nome}"></div>
+    `
+  })
+ 
+  el.innerHTML = html || '<p class="text-xs text-slate-500">Nenhuma story ainda</p>'
+}
+ 
+// ==========================
+// FEED
+// ==========================
+function renderFeed(){
+  const f = document.getElementById("feed")
+ 
+  const filtrados = posts.filter(p => {
+    return (filtroIdade === 'Todos' || p.idade === filtroIdade) &&
+           (filtroPorte === 'Todos' || p.porte === filtroPorte)
+  })
+ 
+  if(filtrados.length === 0){
+    f.innerHTML = `<p>Nenhum pet encontrado</p>`
+    return
+  }
+ 
+  let html = ""
+ 
+  filtrados.forEach(p => {
+    const jaCurtiu = p.likes.includes(usuario.id)
+ 
+    html += `
+    <div class="bg-white p-4 rounded mb-3 fade-in">
+      <img src="${p.foto}" class="w-full h-56 object-cover rounded mb-3">
+      <h4 class="font-bold text-slate-700">${p.nome}</h4>
+      <p class="text-xs text-slate-600 mb-2">Idade: ${p.idade} | Porte: ${p.porte}</p>
+      <p class="text-sm mb-2">${p.desc}</p>
+      <small class="text-slate-500">Por ${p.tutorNome}</small>
+ 
+      <div class="flex gap-2 mt-3">
+        <button onclick="curtir(${p.id})" class="text-sm font-bold hover:text-pink-500">
+          ${jaCurtiu ? "❤️" : "🤍"} ${p.likes.length}
+        </button>
+ 
+        <button onclick="interessarAdocao(${p.id}, '${p.nome}', ${p.tutorId}, '${p.tutorNome}')" class="text-sm font-bold text-pink-500 hover:text-pink-600">
+          🐾 Adotar
+        </button>
+      </div>
+    </div>
+    `
+  })
+ 
+  f.innerHTML = html
+}
+ 
+// ==========================
+// LIKE
+// ==========================
+function curtir(id){
+  const p = posts.find(x => x.id === id)
+ 
+  if(p.likes.includes(usuario.id)){
+    p.likes = p.likes.filter(x => x !== usuario.id)
+  } else {
+    p.likes.push(usuario.id)
+  }
+ 
+  salvar()
+  renderFeed()
+}
+ 
+// ==========================
+// FILTROS
+// ==========================
+function setFiltroIdade(valor){
+  filtroIdade = valor
+  document.querySelectorAll("[id^='fIdade-']").forEach(el => el.classList.remove("ativo"))
+  document.getElementById(`fIdade-${valor}`).classList.add("ativo")
+  renderFeed()
+}
+
+function setFiltroPorte(valor){
+  filtroPorte = valor
+  document.querySelectorAll("[id^='fPorte-']").forEach(el => el.classList.remove("ativo"))
+  document.getElementById(`fPorte-${valor}`).classList.add("ativo")
+  renderFeed()
+}
+ 
+// ==========================
+// CHAT CORRIGIDO ✅
+// ==========================
+async function interessarAdocao(petId, petNome, tutorId, tutorNome){
+ 
+  const ids = [usuario.id, tutorId].sort()
+  const chave = `${ids[0]}-${ids[1]}`
+ 
+  let canal = chats.find(c => c.chave === chave)
+ 
+  if(!canal){
+    canal = {
+      id: Date.now(),
+      chave,
+      adotanteId: usuario.id,
+      adotanteNome: usuario.nome,
+      tutorId,
+      tutorNome,
+      mensagens: []
+    }
+    chats.push(canal)
+  }
+ 
+  canal.mensagens.push({
+    remetente: usuario.nome,
+    texto: `Quero adotar ${petNome}!`
+  })
+ 
+  await salvar()
+  renderChats()
+}
+ 
+// ==========================
+// RENDER CHAT
+// ==========================
+function renderChats(){
+  const el = document.getElementById("chat")
+ 
+  if(chats.length === 0){
+    el.innerHTML = '<p class="text-xs text-slate-500">Nenhuma conversa ainda</p>'
+    return
+  }
+
+  let html = ""
+ 
+  chats.forEach(c => {
+    html += `<div class="bg-slate-50 p-2 rounded mb-3 border">`
+ 
+    c.mensagens.forEach(m => {
+      html += `<p class="text-xs mb-1"><b class="text-pink-500">${m.remetente}:</b> ${m.texto}</p>`
+    })
+ 
+    html += `
+      <input id="msg-${c.id}" class="border p-1 text-xs w-full rounded mb-1" placeholder="Responder...">
+      <button onclick="responder(${c.id})" class="bg-pink-500 text-white text-xs p-1 rounded w-full font-bold hover:bg-pink-600">Enviar</button>
+    </div>`
+  })
+ 
+  el.innerHTML = html
+  el.scrollTop = el.scrollHeight
+}
+ 
+// ==========================
+// RESPONDER
+// ==========================
+async function responder(id){
+  const input = document.getElementById(`msg-${id}`)
+  const txt = input.value.trim()
+ 
+  if(!txt) return
+ 
+  const c = chats.find(x => x.id === id)
+ 
+  c.mensagens.push({
+    remetente: usuario.nome,
+    texto: txt
+  })
+ 
+  input.value = ""
+ 
+  await salvar()
+  renderChats()
+}
+ 
+// ==========================
+// RESET SEGURO
+// ==========================
+async function resetar(){
+  const conf = prompt("Digite RESETAR para apagar tudo")
+ 
+  if(conf === "RESETAR"){
+    posts = []
+    stories = []
+    chats = []
+    await salvar()
+    render()
+  }
+}
+ 
+// ==========================
+// ADMIN PANEL
+// ==========================
+function updateAdminPanel(){
+  if(isAdmin){
+    document.getElementById("mPosts").textContent = posts.length
+    document.getElementById("mChats").textContent = chats.length
+    document.getElementById("mUsers").textContent = new Set([...posts.map(p => p.tutorId), ...chats.map(c => c.adotanteId), ...chats.map(c => c.tutorId)]).size
+  }
+}
+
+function render(){
+  renderFeed()
+  renderStories()
+  renderChats()
+  updateAdminPanel()
+}
+ 
+setInterval(() => {
+  if(usuario) carregar()
+}, 10000)
+
+function toggleSidebar(){
+  const sidebar = document.getElementById("sidebar")
+  sidebar.classList.toggle("-translate-x-full")
+}
+ 
+function scrollFeed(){
+  document.getElementById("feed").scrollIntoView({ behavior: "smooth" })
+  toggleSidebar()
+}
+ 
+function abrirChat(){
+  document.getElementById("chat").scrollIntoView({ behavior: "smooth" })
+  toggleSidebar()
+}
+ 
+function toggleFiltros(){
+  document.getElementById("filtroBox").classList.toggle("hidden")
+  toggleSidebar()
+}
+</script>
+ 
+</body>
+</html>
