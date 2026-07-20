@@ -31,6 +31,21 @@ body { transition: all 0.3s ease }
 .select { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; background: white; }
 .btn-filtro { background: white; color: #64748b; padding: 4px 10px; border: 1px solid #e2e8f0; border-radius: 20px; font-size: 11px; font-weight: 600; transition: all 0.2s; }
 .btn-filtro.ativo { background: #ec4899; color: white; border-color: #ec4899; }
+
+.badge-status {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.badge-disponivel { background: #dcfce7; color: #166534; }
+.badge-em-processo { background: #fef3c7; color: #92400e; }
+.badge-adotado { background: #fce7f3; color: #831843; }
+
+.badge-status:hover { transform: scale(1.1); }
 </style>
  
 </head>
@@ -160,6 +175,12 @@ body { transition: all 0.3s ease }
 <option value="Médio">Porte Médio</option>
 </select>
 </div>
+
+<select id="statusAdocao" class="select mb-2">
+<option value="disponivel">✅ Disponível para Adoção</option>
+<option value="em-processo">⏳ Em Processo de Adoção</option>
+<option value="adotado">❤️ Já Adotado</option>
+</select>
  
       <input type="file" id="img" class="text-xs text-slate-500 w-full mb-1">
  
@@ -281,6 +302,7 @@ function criarPost(){
   const descPet = document.getElementById("desc").value.trim()
   const idade = document.getElementById("idadePet").value
   const porte = document.getElementById("portePet").value
+  const statusAdocao = document.getElementById("statusAdocao").value
   const file = document.getElementById("img").files[0]
  
   if(!nomePet || !descPet || !file) return alert("Preencha tudo")
@@ -296,6 +318,7 @@ function criarPost(){
       nome: nomePet,
       desc: descPet,
       idade, porte,
+      statusAdocao,
       tutorId: usuario.id,
       tutorNome: usuario.nome,
       foto: e.target.result,
@@ -384,12 +407,20 @@ function renderFeed(){
  
   filtrados.forEach(p => {
     const jaCurtiu = p.likes.includes(usuario.id)
+    const statusLabel = getStatusLabel(p.statusAdocao || 'disponivel')
  
     html += `
     <div class="bg-white p-4 rounded mb-3 fade-in">
       <img src="${p.foto}" class="w-full h-56 object-cover rounded mb-3">
-      <h4 class="font-bold text-slate-700">${p.nome}</h4>
-      <p class="text-xs text-slate-600 mb-2">Idade: ${p.idade} | Porte: ${p.porte}</p>
+      <div class="flex justify-between items-start mb-2">
+        <div>
+          <h4 class="font-bold text-slate-700">${p.nome}</h4>
+          <p class="text-xs text-slate-600">Idade: ${p.idade} | Porte: ${p.porte}</p>
+        </div>
+        <span class="badge-status badge-${p.statusAdocao || 'disponivel'}" onclick="mudarStatus(${p.id})" title="Clique para alterar status">
+          ${statusLabel}
+        </span>
+      </div>
       <p class="text-sm mb-2">${p.desc}</p>
       <small class="text-slate-500">Por ${p.tutorNome}</small>
  
@@ -421,6 +452,35 @@ function curtir(id){
     p.likes.push(usuario.id)
   }
  
+  salvar()
+  renderFeed()
+}
+
+// ==========================
+// STATUS ADOÇÃO
+// ==========================
+function getStatusLabel(status) {
+  const labels = {
+    'disponivel': '✅ Disponível',
+    'em-processo': '⏳ Em Processo',
+    'adotado': '❤️ Adotado'
+  }
+  return labels[status] || '✅ Disponível'
+}
+
+function mudarStatus(id) {
+  const p = posts.find(x => x.id === id)
+  if(!p) return
+  
+  if(p.tutorId !== usuario.id && !isAdmin) {
+    return alert("Apenas o tutor pode alterar o status!")
+  }
+  
+  const statuses = ['disponivel', 'em-processo', 'adotado']
+  const currentIndex = statuses.indexOf(p.statusAdocao || 'disponivel')
+  const nextIndex = (currentIndex + 1) % statuses.length
+  p.statusAdocao = statuses[nextIndex]
+  
   salvar()
   renderFeed()
 }
