@@ -177,6 +177,22 @@ body { transition: all 0.3s ease }
   <div id="app" class="hidden">
  
     <div class="bg-white p-3 rounded-xl shadow border flex gap-3 overflow-x-auto" id="stories"></div>
+
+    <!-- Search and Stats Section -->
+    <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow p-4 text-white">
+        <p class="text-sm font-semibold mb-2">🔍 Buscar Pet</p>
+        <input id="searchPet" placeholder="Nome do pet..." type="text" class="w-full px-3 py-2 rounded text-black text-sm" oninput="buscarPet()">
+      </div>
+      <div class="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl shadow p-4 text-white">
+        <p class="text-sm font-semibold mb-2">⭐ Favoritos</p>
+        <button onclick="mostrarFavoritos()" class="w-full bg-white text-orange-600 font-bold py-2 rounded hover:bg-orange-50 text-sm">Ver Salvos</button>
+      </div>
+      <div class="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow p-4 text-white">
+        <p class="text-sm font-semibold mb-2">📊 Dashboard</p>
+        <button onclick="mostrarEstatisticas()" class="w-full bg-white text-pink-600 font-bold py-2 rounded hover:bg-pink-50 text-sm">Ver Stats</button>
+      </div>
+    </div>
  
     <div id="cadastroPetBox" class="bg-white p-4 rounded-xl shadow border mb-4">
 <h3 class="font-bold text-slate-700 text-xs uppercase mb-2">Anunciar Pet / Publicar Story</h3>
@@ -235,6 +251,8 @@ let isAdmin = false
 let posts = []
 let stories = []
 let chats = []
+let favoritos = JSON.parse(localStorage.getItem('favoritos')) || []
+let searchResults = []
  
 let filtroIdade = 'Todos'
 let filtroPorte = 'Todos'
@@ -445,6 +463,10 @@ function renderFeed(){
         <button onclick="curtir(${p.id})" class="text-sm font-bold hover:text-pink-500">
           ${jaCurtiu ? "❤️" : "🤍"} ${p.likes.length}
         </button>
+
+        <button onclick="favoritar(${p.id})" class="text-sm font-bold hover:text-yellow-500">
+          ${isFavorito(p.id) ? "⭐" : "☆"} Salvar
+        </button>
  
         <button onclick="interessarAdocao(${p.id}, '${p.nome}', ${p.tutorId}, '${p.tutorNome}')" class="text-sm font-bold text-pink-500 hover:text-pink-600">
           🐾 Adotar
@@ -627,6 +649,146 @@ function updateAdminPanel(){
     document.getElementById("mChats").textContent = chats.length
     document.getElementById("mUsers").textContent = new Set([...posts.map(p => p.tutorId), ...chats.map(c => c.adotanteId), ...chats.map(c => c.tutorId)]).size
   }
+}
+
+// ==========================
+// BUSCA DE PETS
+// ==========================
+function buscarPet(){
+  const termo = document.getElementById("searchPet").value.toLowerCase().trim()
+  
+  if(!termo){
+    renderFeed()
+    return
+  }
+  
+  searchResults = posts.filter(p => p.nome.toLowerCase().includes(termo))
+  
+  const f = document.getElementById("feed")
+  if(searchResults.length === 0){
+    f.innerHTML = `<p class="text-slate-500">Nenhum pet encontrado com "${termo}"</p>`
+    return
+  }
+  
+  let html = ""
+  searchResults.forEach(p => {
+    const jaCurtiu = p.likes.includes(usuario.id)
+    const statusLabel = getStatusLabel(p.statusAdocao || 'disponivel')
+    
+    html += `
+    <div class="bg-white p-4 rounded mb-3 fade-in border-l-4 border-blue-500">
+      <img src="${p.foto}" class="w-full h-56 object-cover rounded mb-3">
+      <div class="flex justify-between items-start mb-2">
+        <div>
+          <h4 class="font-bold text-slate-700">${p.nome}</h4>
+          <p class="text-xs text-slate-600">Idade: ${p.idade} | Porte: ${p.porte}</p>
+        </div>
+        <span class="badge-status badge-${p.statusAdocao || 'disponivel'}" onclick="mudarStatus(${p.id})" title="Clique para alterar status">
+          ${statusLabel}
+        </span>
+      </div>
+      <p class="text-sm mb-2">${p.desc}</p>
+      <small class="text-slate-500">Por ${p.tutorNome}</small>
+      
+      <div class="flex gap-2 mt-3">
+        <button onclick="curtir(${p.id})" class="text-sm font-bold hover:text-pink-500">
+          ${jaCurtiu ? "❤️" : "🤍"} ${p.likes.length}
+        </button>
+        <button onclick="favoritar(${p.id})" class="text-sm font-bold hover:text-yellow-500">
+          ${isFavorito(p.id) ? "⭐" : "☆"} Salvar
+        </button>
+        <button onclick="interessarAdocao(${p.id}, '${p.nome}', ${p.tutorId}, '${p.tutorNome}')" class="text-sm font-bold text-pink-500 hover:text-pink-600">
+          🐾 Adotar
+        </button>
+      </div>
+    </div>
+    `
+  })
+  f.innerHTML = html
+}
+
+// ==========================
+// FAVORITOS
+// ==========================
+function isFavorito(petId) {
+  return favoritos.includes(petId)
+}
+
+function favoritar(petId) {
+  if(isFavorito(petId)){
+    favoritos = favoritos.filter(f => f !== petId)
+  } else {
+    favoritos.push(petId)
+  }
+  localStorage.setItem('favoritos', JSON.stringify(favoritos))
+  renderFeed()
+}
+
+function mostrarFavoritos() {
+  const petsFav = posts.filter(p => isFavorito(p.id))
+  
+  if(petsFav.length === 0){
+    alert("Você não tem pets salvos ainda!")
+    return
+  }
+  
+  const f = document.getElementById("feed")
+  let html = `<h3 class="font-bold text-2xl text-pink-500 mb-4">⭐ Meus Pets Salvos (${petsFav.length})</h3>`
+  
+  petsFav.forEach(p => {
+    const jaCurtiu = p.likes.includes(usuario.id)
+    const statusLabel = getStatusLabel(p.statusAdocao || 'disponivel')
+    
+    html += `
+    <div class="bg-white p-4 rounded mb-3 fade-in border-l-4 border-yellow-500">
+      <img src="${p.foto}" class="w-full h-56 object-cover rounded mb-3">
+      <div class="flex justify-between items-start mb-2">
+        <div>
+          <h4 class="font-bold text-slate-700">${p.nome}</h4>
+          <p class="text-xs text-slate-600">Idade: ${p.idade} | Porte: ${p.porte}</p>
+        </div>
+        <span class="badge-status badge-${p.statusAdocao || 'disponivel'}">
+          ${statusLabel}
+        </span>
+      </div>
+      <p class="text-sm mb-2">${p.desc}</p>
+      <small class="text-slate-500">Por ${p.tutorNome}</small>
+      
+      <div class="flex gap-2 mt-3">
+        <button onclick="curtir(${p.id})" class="text-sm font-bold hover:text-pink-500">
+          ${jaCurtiu ? "❤️" : "🤍"} ${p.likes.length}
+        </button>
+        <button onclick="favoritar(${p.id})" class="text-sm font-bold hover:text-yellow-500">
+          ⭐ Remover
+        </button>
+        <button onclick="interessarAdocao(${p.id}, '${p.nome}', ${p.tutorId}, '${p.tutorNome}')" class="text-sm font-bold text-pink-500 hover:text-pink-600">
+          🐾 Adotar
+        </button>
+      </div>
+    </div>
+    `
+  })
+  
+  f.innerHTML = html
+}
+
+function mostrarEstatisticas() {
+  const totalPets = posts.length
+  const disponivel = posts.filter(p => (p.statusAdocao || 'disponivel') === 'disponivel').length
+  const emProcesso = posts.filter(p => p.statusAdocao === 'em-processo').length
+  const adotados = posts.filter(p => p.statusAdocao === 'adotado').length
+  const minhosFavoritos = favoritos.length
+  
+  alert(`
+📊 ESTATÍSTICAS DO PETSOCIAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🐾 Total de Pets: ${totalPets}
+✅ Disponíveis: ${disponivel}
+⏳ Em Processo: ${emProcesso}
+❤️ Adotados: ${adotados}
+⭐ Seus Favoritos: ${minhosFavoritos}
+💬 Conversas Ativas: ${chats.length}
+  `)
 }
 
 function render(){
